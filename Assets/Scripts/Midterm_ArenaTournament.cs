@@ -87,12 +87,10 @@ public class Midterm_ArenaTournament : MonoBehaviour
 
     int attackerIndex;
     int targetIndex;
+    bool isCritical = false;
 
     void Start()
     {
-        // Place this wherever a D20 is rolled. Debug.Log to call it.
-        RollD20();
-
         PrintRoster(names, health, armorClass, attackProficiency, attackStrength, attackFrequency);
 
         // TODO: Run the tournament.
@@ -102,23 +100,29 @@ public class Midterm_ArenaTournament : MonoBehaviour
         //   announce the winner.
 
         // Track each round and compare against attackFrequency, only names who's attack frequency matches the round attack
-        if (CountAlive(health) > 1)
+        while (CountAlive() > 1)
         {
             round++;
             // If attackFrequency % round = 0, then that name attacks
             for (int i = 0; i < attackFrequency.Length; i++)
             {
-                if ((round % attackFrequency[i]) == 0)
+                if (CountAlive() <= 1)
                 {
-                    Attack(targetIndex, attackerIndex);
+                    break;
+                }
 
+                if ((round % attackFrequency[i]) == 0 && health[i] > 0)
+                {
+                    attackerIndex = i;
+                    Attack(attackerIndex, targetIndex);
                 }
             }
           
         }
-        else
+        
+        if (CountAlive() <= 1)
         {
-            AnnounceWinner(attackerIndex, targetIndex);
+            AnnounceWinner();
         }
     }
 
@@ -159,7 +163,7 @@ public class Midterm_ArenaTournament : MonoBehaviour
     /// Returns the number of alive fighters
     /// </summary>
     /// <returns>integer number of living fighters</returns>
-    int CountAlive(int[] health)
+    int CountAlive()
     {
         int alive = 0;
         for (int i = 0; i < health.Length; i++)
@@ -178,12 +182,12 @@ public class Midterm_ArenaTournament : MonoBehaviour
     /// </summary>
     /// <param name="attackerIndex">Integer index of the attacking fighter</param>
     /// <returns>a randomly chosen target index to attack</returns>
-    int ChooseTarget(int attackerIndex, int targetIndex)
+    int ChooseTarget(int attackerIndex)
     {
-        if (CountAlive(health) > 0)
+        if (CountAlive() > 1)
         {
             targetIndex = Random.Range(0, 8);
-            while(attackerIndex == targetIndex)
+            while(attackerIndex == targetIndex || health[targetIndex] <= 0)
             {
                 targetIndex = Random.Range(0, 8);
             }
@@ -200,10 +204,10 @@ public class Midterm_ArenaTournament : MonoBehaviour
     /// </summary>
     /// <param name="attackerIndex">Integer index of the attacking fighter</param>
     /// <returns>Total damage of the attack</returns>
-    int CalculateDamage(int attackerIndex, int targetIndex)
+    int CalculateDamage(int attackerIndex)
     {
-        
-        return 0;
+        health[targetIndex] = (health[targetIndex] - attackStrength[attackerIndex]);
+        return health[targetIndex];
     }
 
     /// <summary>
@@ -214,8 +218,13 @@ public class Midterm_ArenaTournament : MonoBehaviour
     /// <returns>Total damage of the attack</returns>
     int CalculateDamage(int attackerIndex, bool isCritical)
     {
-
-        return 0;
+        if (RollD20() == 20)
+        {
+            isCritical = true;
+            attackStrength[attackerIndex] = (attackStrength[attackerIndex] * 2);
+            health[targetIndex] = (health[targetIndex] - attackStrength[attackerIndex]);
+        }
+        return health[targetIndex];
     }
 
     // TODO: 
@@ -240,18 +249,41 @@ public class Midterm_ArenaTournament : MonoBehaviour
     /// <param name="targetIndex">Integer index of the targeted fighter</param>
     void Attack(int attackerIndex, int targetIndex)
     {
-        attackerIndex = Random.Range(0, 8);
-        ChooseTarget(attackerIndex, targetIndex);
+        targetIndex = ChooseTarget(attackerIndex);
+        RollD20();
+
+        if(RollD20() >= armorClass[targetIndex])
+        {
+            if (isCritical == true)
+            {
+                CalculateDamage(attackerIndex, isCritical);
+                Debug.Log(names[attackerIndex] + " lands a Critical Hit on " + names[targetIndex] + " for " + attackStrength[attackerIndex] + " damage.");
+                attackStrength[attackerIndex] = (attackStrength[attackerIndex] / 2);
+            }
+            else
+            {
+                CalculateDamage(attackerIndex);
+                Debug.Log(names[attackerIndex] + " hits " + names[targetIndex] + " for " + attackStrength[attackerIndex] + " damage.");
+            }
+        }
+        else
+        {
+            Debug.Log(names[attackerIndex] + " misses " + names[targetIndex]);
+        }
+ 
     }
 
     /// <summary>
     /// Finds the surviving fighter and outputs their name to the console window
     /// </summary>
-    void AnnounceWinner(int attackerIndex, int targetIndex)
+    void AnnounceWinner()
     {
-        if (ChooseTarget(attackerIndex, targetIndex) == -1)
+        for(int i = 0; i < health.Length; i++)
         {
-            Debug.Log(names[attackerIndex] + " has won!");
+            if (health[i] > 0)
+            {
+                Debug.Log(names[i] + " has won!");
+            }
         }
     }
 }
